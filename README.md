@@ -197,6 +197,9 @@ Base URL:
   - `contact` (string, required)
   - `payable` (number, required)
   - `type` (string, required)
+  - `date` (date, optional)
+  - `order_date` (date, optional)
+  - `delivery_date` (date, optional)
   - `image` (file, image, optional) — add one image
   - `images[]` (file, image, multiple, optional) — add multiple images
 - **Response:** Payee with `images: [{ id, url }]` and `image_url` (first image)
@@ -209,7 +212,7 @@ Base URL:
 - **PUT** `/payees/{id}`
 - **Header:** `Authorization: Bearer {token}`
 - **Body:** `form-data`
-  - Any of: `name`, `contact`, `payable`, `type`
+  - Any of: `name`, `contact`, `payable`, `type`, `date`, `order_date`, `delivery_date`
   - `image` (file, image, optional) — add one
   - `images[]` (file, image, multiple, optional) — add many
   - `remove_image` (boolean, optional) — remove legacy single image
