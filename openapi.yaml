@@ -1,0 +1,854 @@
+openapi: 3.0.0
+info:
+  title: Beopari API
+  version: 1.0.0
+  description: Multi-company business management API
+
+servers:
+  - url: http://localhost/api
+
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        quantity: { type: integer }
+        cost_price: { type: number, format: float }
+        retail_price: { type: number, format: float }
+        margin: { type: number, format: float }
+        description: { type: string }
+        company_id: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        gross_total: { type: number, format: float }
+        discount: { type: number, format: float }
+        total_paid: { type: number, format: float }
+        balance: { type: number, format: float }
+        tyre: { type: string }
+        customer: { type: string }
+        number: { type: string }
+        payable: { type: number, format: float }
+        company_id: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    OrderDetail:
+      type: object
+      properties:
+        id: { type: integer }
+        order_id: { type: integer }
+        product_id: { type: integer }
+        name: { type: string }
+        quantity: { type: integer }
+        price: { type: number, format: float }
+        created_at: { type: string, format: date-time }
+    Payee:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        contact: { type: string }
+        payable: { type: number, format: float }
+        type: { type: string }
+        company_id: { type: integer }
+        image_path: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        date: { type: string, format: date, nullable: true }
+        order_date: { type: string, format: date, nullable: true }
+        delivery_date: { type: string, format: date, nullable: true }
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayeeImage'
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    PayeeImage:
+      type: object
+      properties:
+        id: { type: integer }
+        payee_id: { type: integer }
+        url: { type: string }
+    PayeeTrans:
+      type: object
+      properties:
+        trans_id: { type: integer }
+        name: { type: string }
+        cus_id: { type: integer }
+        amount: { type: number, format: float }
+        remain_amount: { type: number, format: float }
+        status: { type: integer, description: "0 for in, 1 for out" }
+        datetime: { type: string, format: date-time }
+        description: { type: string }
+    Bank:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        number: { type: string }
+        name: { type: string }
+        balance: { type: number, format: float }
+        status: { type: integer }
+        company_id: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    BankTrans:
+      type: object
+      properties:
+        trans_id: { type: integer }
+        bank_id: { type: integer }
+        name: { type: string }
+        cus_id: { type: integer }
+        amount: { type: number, format: float }
+        status: { type: integer, description: "0 for credit, 1 for debit" }
+        datetime: { type: string, format: date-time }
+        description: { type: string }
+    Company:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        contact: { type: string }
+        address: { type: string }
+        logo: { type: string }
+        shopname: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        company_id: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+security:
+  - sanctum: []
+
+paths:
+  /register:
+    post:
+      summary: Register a new user and company
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation, company_name]
+              properties:
+                name: { type: string }
+                email: { type: string }
+                password: { type: string, format: password }
+                password_confirmation: { type: string, format: password }
+                company_name: { type: string }
+                company_contact: { type: string }
+                company_address: { type: string }
+                company_logo: { type: string }
+                company_shopname: { type: string }
+      responses:
+        '201':
+          description: User and company created, returns token
+  /login:
+    post:
+      summary: Login and get API token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Authenticated, returns token
+  /logout:
+    post:
+      summary: Logout and revoke token
+      tags: [Auth]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: Logged out
+
+  /company:
+    get:
+      summary: Get authenticated user's company
+      tags: [Company]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: Company info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+    put:
+      summary: Update company info
+      tags: [Company]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Company'
+      responses:
+        '200':
+          description: Updated company info
+
+  /profile:
+    get:
+      summary: Get authenticated user's profile
+      tags: [Profile]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      summary: Update user profile
+      tags: [Profile]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Updated user profile
+  /profile/password:
+    put:
+      summary: Change user password
+      tags: [Profile]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password, password_confirmation]
+              properties:
+                current_password: { type: string, format: password }
+                password: { type: string, format: password }
+                password_confirmation: { type: string, format: password }
+      responses:
+        '200':
+          description: Password updated
+
+  /products:
+    get:
+      summary: List all products for the company
+      tags: [Products]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      summary: Create a new product
+      tags: [Products]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Product created
+  /products/{id}:
+    get:
+      summary: Get a product by ID
+      tags: [Products]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    put:
+      summary: Update a product
+      tags: [Products]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Product updated
+    delete:
+      summary: Delete a product
+      tags: [Products]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Product deleted
+
+  /orders:
+    get:
+      summary: List all orders for the company
+      tags: [Orders]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+    post:
+      summary: Create a new order
+      tags: [Orders]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '201':
+          description: Order created
+  /orders/{id}:
+    get:
+      summary: Get an order by ID
+      tags: [Orders]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+    put:
+      summary: Update an order
+      tags: [Orders]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '200':
+          description: Order updated
+    delete:
+      summary: Delete an order
+      tags: [Orders]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Order deleted
+
+  /order-details:
+    get:
+      summary: List all order details for the company
+      tags: [OrderDetails]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: List of order details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderDetail'
+    post:
+      summary: Create a new order detail
+      tags: [OrderDetails]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderDetail'
+      responses:
+        '201':
+          description: Order detail created
+  /order-details/{id}:
+    get:
+      summary: Get an order detail by ID
+      tags: [OrderDetails]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Order detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+    put:
+      summary: Update an order detail
+      tags: [OrderDetails]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderDetail'
+      responses:
+        '200':
+          description: Order detail updated
+    delete:
+      summary: Delete an order detail
+      tags: [OrderDetails]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Order detail deleted
+
+  /payees:
+    get:
+      summary: List all payees for the company
+      tags: [Payees]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: List of payees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payee'
+    post:
+      summary: Create a new payee
+      tags: [Payees]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                contact: { type: string }
+                payable: { type: number, format: float }
+                type: { type: string }
+                date: { type: string, format: date }
+                order_date: { type: string, format: date }
+                delivery_date: { type: string, format: date }
+                image: { type: string, format: binary }
+                images:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        '201':
+          description: Payee created
+  /payees/{id}:
+    get:
+      summary: Get a payee by ID
+      tags: [Payees]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Payee details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payee'
+    put:
+      summary: Update a payee
+      tags: [Payees]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                contact: { type: string }
+                payable: { type: number, format: float }
+                type: { type: string }
+                date: { type: string, format: date }
+                order_date: { type: string, format: date }
+                delivery_date: { type: string, format: date }
+                image: { type: string, format: binary }
+                images:
+                  type: array
+                  items: { type: string, format: binary }
+                remove_image: { type: boolean }
+                remove_image_ids:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '200':
+          description: Payee updated
+    delete:
+      summary: Delete a payee
+      tags: [Payees]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Payee deleted
+
+  /payee-trans:
+    get:
+      summary: List all payee transactions for the company
+      tags: [PayeeTrans]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: List of payee transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayeeTrans'
+    post:
+      summary: Create a new payee transaction
+      tags: [PayeeTrans]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayeeTrans'
+      responses:
+        '201':
+          description: Payee transaction created
+  /payee-trans/{id}:
+    get:
+      summary: Get a payee transaction by ID
+      tags: [PayeeTrans]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Payee transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayeeTrans'
+    put:
+      summary: Update a payee transaction
+      tags: [PayeeTrans]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayeeTrans'
+      responses:
+        '200':
+          description: Payee transaction updated
+    delete:
+      summary: Delete a payee transaction
+      tags: [PayeeTrans]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Payee transaction deleted
+
+  /banks:
+    get:
+      summary: List all banks for the company
+      tags: [Banks]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: List of banks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bank'
+    post:
+      summary: Create a new bank
+      tags: [Banks]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bank'
+      responses:
+        '201':
+          description: Bank created
+  /banks/{id}:
+    get:
+      summary: Get a bank by ID
+      tags: [Banks]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Bank details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bank'
+    put:
+      summary: Update a bank
+      tags: [Banks]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bank'
+      responses:
+        '200':
+          description: Bank updated
+    delete:
+      summary: Delete a bank
+      tags: [Banks]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Bank deleted
+
+  /bank-trans:
+    get:
+      summary: List all bank transactions for the company
+      tags: [BankTrans]
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: List of bank transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BankTrans'
+    post:
+      summary: Create a new bank transaction
+      tags: [BankTrans]
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankTrans'
+      responses:
+        '201':
+          description: Bank transaction created
+  /bank-trans/{id}:
+    get:
+      summary: Get a bank transaction by ID
+      tags: [BankTrans]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Bank transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankTrans'
+    put:
+      summary: Update a bank transaction
+      tags: [BankTrans]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankTrans'
+      responses:
+        '200':
+          description: Bank transaction updated
+    delete:
+      summary: Delete a bank transaction
+      tags: [BankTrans]
+      security:
+        - sanctum: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Bank transaction deleted 
