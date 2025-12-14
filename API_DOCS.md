@@ -319,4 +319,113 @@ Base URL:
 
 ---
 
+## **Customers**
+
+### List Customers
+- **GET** `/customers`
+- **Header:** `Authorization: Bearer {token}`
+
+### Create Customer
+- **POST** `/customers`
+- **Header:** `Authorization: Bearer {token}`
+- **Body:** `application/json`
+  - `name` (string, required)
+  - `email` (string, email, unique, optional)
+  - `phone` (string, optional)
+  - `address` (string, optional)
+  - `tax_number` (string, optional)
+
+### Get Customer
+- **GET** `/customers/{id}`
+- **Header:** `Authorization: Bearer {token}`
+
+### Update Customer
+- **PUT** `/customers/{id}`
+- **Header:** `Authorization: Bearer {token}`
+- **Body:** `application/json`
+  - Any of: `name`, `email`, `phone`, `address`, `tax_number`
+
+### Delete Customer
+- **DELETE** `/customers/{id}`
+- **Header:** `Authorization: Bearer {token}`
+
+---
+
+## **Tax Rates**
+
+### List Tax Rates
+- **GET** `/tax-rates`
+- **Header:** `Authorization: Bearer {token}`
+
+### Create Tax Rate
+- **POST** `/tax-rates`
+- **Header:** `Authorization: Bearer {token}`
+- **Body:** `application/json`
+  - `name` (string, required)
+  - `rate` (number, required)
+  - `type` (enum: percentage, fixed, required)
+
+### Get Tax Rate
+- **GET** `/tax-rates/{id}`
+- **Header:** `Authorization: Bearer {token}`
+
+### Update Tax Rate
+- **PUT** `/tax-rates/{id}`
+- **Header:** `Authorization: Bearer {token}`
+- **Body:** `application/json`
+  - Any of: `name`, `rate`, `type`, `is_active`
+
+### Delete Tax Rate
+- **DELETE** `/tax-rates/{id}`
+- **Header:** `Authorization: Bearer {token}`
+
+---
+
+## **Products (Updated)**
+
+### List Products
+- **GET** `/products`
+- **Header:** `Authorization: Bearer {token}`
+
+### Scan Product (Barcode)
+- **GET** `/products/barcode/lookup?barcode={code}`
+- **Header:** `Authorization: Bearer {token}`
+
+### Create Product
+- **POST** `/products`
+- **Body Additions:**
+  - `sku` (string, optional)
+  - `barcode` (string, optional)
+  - `reorder_point` (integer, default 10)
+
+---
+
+## **Orders (Updated)**
+
+### Create Order
+- **POST** `/orders`
+- **Header:** `Authorization: Bearer {token}`
+- **Body:** `application/json`
+  - `customer_id` (integer, required)
+  - `tax_rate_id` (integer, optional)
+  - `discount` (number, optional)
+  - `details` (array, required)
+    - `product_id`, `quantity`, `price`
+  - `payments` (array, required)
+    - `method` (enum: cash, card, mobile_money, check)
+    - `amount` (number)
+
+### Void Order
+- **POST** `/orders/{id}/void`
+- **Header:** `Authorization: Bearer {token}`
+- **Description:** Voids the order and restores inventory.
+
+---
+
+## **Notes**
+- **RBAC:** Some endpoints (voiding orders, managing tax rates) require specific permissions.
+- **Inventory:** Stock is automatically deducted on order creation and restored on void.
+
+---
+
 **For a ready-to-import Postman collection, see `beopari.postman_collection.json`.** 
